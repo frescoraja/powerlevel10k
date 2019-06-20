@@ -951,7 +951,7 @@ prompt_go_version() {
 ################################################################
 # Command number (in local history)
 prompt_history() {
-  "$1_prompt_segment" "$0" "$2" "grey50" "$DEFAULT_COLOR" '' 0 '' '%h'
+  "$1_prompt_segment" "$0" "$2" "grey50" "$DEFAULT_COLOR" 'HISTORY_ICON' 0 '' '%h'
 }
 
 ################################################################
@@ -1201,6 +1201,11 @@ prompt_nvm() {
   [[ -n $NVM_DIR ]] && _p9k_nvm_ls_current || return
   local current=$_P9K_RETVAL
   ! _p9k_nvm_ls_default || [[ $_P9K_RETVAL != $current ]] || return
+
+  if [[ $POWERLEVEL9K_NVM_NON_VERBOSE == "true" ]]; then
+    current=""
+  fi
+
   $1_prompt_segment "$0" "$2" "magenta" "black" 'NODE_ICON' 0 '' "${${current#v}//\%/%%}"
 }
 
@@ -1297,6 +1302,10 @@ prompt_rbenv() {
   if [[ $POWERLEVEL9K_RBENV_PROMPT_ALWAYS_SHOW == false ]]; then
     _p9k_rbenv_global_version
     [[ $v == $_P9K_RETVAL ]] && return
+  fi
+
+  if [[ $POWERLEVEL9K_RBENV_NON_VERBOSE == "true" ]]; then
+    v=""
   fi
 
   "$1_prompt_segment" "$0" "$2" "red" "$DEFAULT_COLOR" 'RUBY_ICON' 0 '' "${v//\%/%%}"
@@ -1432,7 +1441,7 @@ prompt_status() {
       if [[ "$POWERLEVEL9K_STATUS_CROSS" == false && "$POWERLEVEL9K_STATUS_VERBOSE" == true ]]; then
         _P9K_CACHE_VAL=("$0_ERROR" "$2" red yellow1 CARRIAGE_RETURN_ICON 0 '' "$ec_text")
       else
-        _P9K_CACHE_VAL=("$0_ERROR" "$2" "$DEFAULT_COLOR" red FAIL_ICON 0 '' '')
+        _P9K_CACHE_VAL=("$0_ERROR" "$2" red red FAIL_ICON 0 '' '')
       fi
     elif [[ "$POWERLEVEL9K_STATUS_OK" == true ]] && [[ "$POWERLEVEL9K_STATUS_VERBOSE" == true || "$POWERLEVEL9K_STATUS_OK_IN_NON_VERBOSE" == true ]]; then
       _P9K_CACHE_VAL=("$0_OK" "$2" "$DEFAULT_COLOR" green OK_ICON 0 '' '')
@@ -1934,6 +1943,7 @@ set_default POWERLEVEL9K_VI_COMMAND_MODE_STRING "NORMAL"
 prompt_vi_mode() {
   $1_prompt_segment $0_NORMAL $2 "$DEFAULT_COLOR" white '' 0 '${$((!${#${:-$KEYMAP$_P9K_REGION_ACTIVE}:#vicmd0})):#0}' "$POWERLEVEL9K_VI_COMMAND_MODE_STRING"
   $1_prompt_segment $0_VISUAL $2 "$DEFAULT_COLOR" white '' 0 '${$((!${#${:-$KEYMAP$_P9K_REGION_ACTIVE}:#vicmd1})):#0}' "$POWERLEVEL9K_VI_VISUAL_MODE_STRING"
+  $1_prompt_segment $0_VISUAL_LINE $2 "$DEFAULT_COLOR" white '' 0 '${$((!${#${:-$KEYMAP$_P9K_REGION_ACTIVE}:#vicmd2})):#0}' "$POWERLEVEL9K_VI_VISUAL_LINE_MODE_STRING"
   if [[ -n $POWERLEVEL9K_VI_INSERT_MODE_STRING ]]; then
     $1_prompt_segment $0_INSERT $2 "$DEFAULT_COLOR" blue '' 0 '${${KEYMAP:-0}:#vicmd}' "$POWERLEVEL9K_VI_INSERT_MODE_STRING"
   fi
@@ -2018,9 +2028,11 @@ prompt_swift_version() {
 
 ################################################################
 # dir_writable: Display information about the user's permission to write in the current directory
+set_default POWERLEVEL9K_DIR_WRITABLE_BACKGROUND red
+set_default POWERLEVEL9K_DIR_WRITABLE_FOREGROUND yellow1
 prompt_dir_writable() {
   if [[ ! -w "$PWD" ]]; then
-    "$1_prompt_segment" "$0_FORBIDDEN" "$2" "red" "yellow1" 'LOCK_ICON' 0 '' ''
+    "$1_prompt_segment" "$0_FORBIDDEN" "$2" "${POWERLEVEL9K_DIR_WRITABLE_BACKGROUND}" "${POWERLEVEL9K_DIR_WRITABLE_FOREGROUND}" 'LOCK_ICON' 0 '' ''
   fi
 }
 
