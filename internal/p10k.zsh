@@ -1989,6 +1989,11 @@ prompt_dir() {
       content=$header$content$footer
     fi
 
+    if [[ $PWD == '/' ]]; then
+      content=""
+      icon=ROOT_ICON
+    fi
+
     (( expand )) && _p9k_prompt_length "${(e):-"\${\${_p9k__d::=0}+}$content"}" || _p9k__ret=
     _p9k_cache_ephemeral_set "$state" "$icon" "$expand" "$content" $_p9k__ret
   fi
@@ -2024,18 +2029,36 @@ prompt_go_version() {
   [[ $_p9k__ret == (#b)*go([[:digit:].]##)* ]] || return
   local v=$match[1]
   if (( _POWERLEVEL9K_GO_VERSION_PROJECT_ONLY )); then
-    local p=$GOPATH
+    local p="$(go env GOPATH 2>/dev/null)"
     if [[ -z $p ]]; then
       if [[ -d $HOME/go ]]; then
         p=$HOME/go
       else
-        p="$(go env GOPATH 2>/dev/null)" && [[ -n $p ]] || return
+        return
       fi
     fi
-    if [[ $_p9k__cwd/ != $p/* && $_p9k__cwd_a/ != $p/* ]]; then
-      _p9k_upglob go.mod && return
+    local -a found
+    local gopaths=(${(@s/:/)p})
+    for gp in $gopaths; do
+      if [[ $_p9k__cwd/ == $gp/* || $_p9k_cwd_a/ == $gp/* ]]; then
+        found=true
+        break
+      fi
+    done
+    if [[ $found != 'true' ]]; then
+      local dir=$_p9k__cwd_a
+      while true; do
+        [[ $dir == / ]] && return
+        [[ -e $dir/go.mod ]] && found=true && break
+        dir=${dir:h}
+      done
     fi
+
+    [[ $found != 'true' ]] && return
   fi
+
+  [[ $POWERLEVEL9K_GO_NON_VERBOSE == 'true' ]] && v=""
+
   _p9k_prompt_segment "$0" "green" "grey93" "GO_ICON" 0 '' "${v//\%/%%}"
 }
 
@@ -2329,6 +2352,11 @@ prompt_nvm() {
   [[ -n $NVM_DIR ]] && _p9k_nvm_ls_current || return
   local current=$_p9k__ret
   ! _p9k_nvm_ls_default || [[ $_p9k__ret != $current ]] || return
+
+  if [[ $POWERLEVEL9K_NVM_NON_VERBOSE == "true" ]]; then
+    current=""
+  fi
+
   _p9k_prompt_segment "$0" "magenta" "black" 'NODE_ICON' 0 '' "${${current#v}//\%/%%}"
 }
 
@@ -2546,6 +2574,10 @@ prompt_rbenv() {
   if (( !_POWERLEVEL9K_RBENV_PROMPT_ALWAYS_SHOW )); then
     _p9k_rbenv_global_version
     [[ $v == $_p9k__ret ]] && return
+  fi
+
+  if [[ $POWERLEVEL9K_RBENV_NON_VERBOSE == "true" ]]; then
+    v=""
   fi
 
   _p9k_prompt_segment "$0" "red" "$_p9k_color1" 'RUBY_ICON' 0 '' "${v//\%/%%}"
